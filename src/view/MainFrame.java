@@ -48,7 +48,7 @@ public class MainFrame extends JFrame implements OscilloscopeEventHandler{
 
         pitchSlider = new JSlider(20, 250);
         pitchSlider.setValue(100);
-        pitchSlider.addChangeListener(parameterSettingChangedListener);
+        pitchSlider.addChangeListener(parameterSettingPitch);
 
         gainSlider = new JSlider(0,200);
         gainSlider.setValue(100);
@@ -89,7 +89,7 @@ public class MainFrame extends JFrame implements OscilloscopeEventHandler{
         }
     };
 
-    private ChangeListener parameterSettingChangedListener = new ChangeListener(){
+    private ChangeListener parameterSettingPitch = new ChangeListener(){
         @Override
         public void stateChanged(ChangeEvent arg0) {
             if (arg0.getSource() instanceof JSlider) {

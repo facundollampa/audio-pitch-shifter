@@ -8,8 +8,6 @@ import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.TargetDataLine;
 
 import be.tarsos.dsp.AudioDispatcher;
-import be.tarsos.dsp.AudioEvent;
-import be.tarsos.dsp.AudioProcessor;
 import be.tarsos.dsp.GainProcessor;
 import be.tarsos.dsp.Oscilloscope;
 import be.tarsos.dsp.Oscilloscope.OscilloscopeEventHandler;
@@ -21,21 +19,21 @@ import be.tarsos.dsp.resample.RateTransposer;
 
 public class AudioPitchShifter {
 
-    private AudioDispatcher dispatcher;
-    private WaveformSimilarityBasedOverlapAdd wsola;
+    private AudioFormat format;
     private GainProcessor gain;
     private AudioPlayer audioPlayer;
+    private AudioDispatcher dispatcher;
     private RateTransposer rateTransposer;
-    private AudioFormat format;
+    private WaveformSimilarityBasedOverlapAdd wsola;
 
-    private double pitchValue;
     private double gainValue;
+    private double pitchValue;
     private double sampleRate;
     private OscilloscopeEventHandler oscilloscopeEventHandler;
 
     public AudioPitchShifter(OscilloscopeEventHandler handler) {
-        pitchValue = 1;
         gainValue = 1;
+        pitchValue = 1;
         oscilloscopeEventHandler = handler;
     }
 
@@ -44,64 +42,48 @@ public class AudioPitchShifter {
         if(dispatcher != null){
             dispatcher.stop();
         }
+
         try {
             setParameters();
             DataLine.Info info = new DataLine.Info(TargetDataLine.class, format);
+
             if(!AudioSystem.isLineSupported(info)) {
-            System.out.println("line not supported");
+                System.out.println("line not supported");
             }
 
+            audioPlayer = new AudioPlayer(format);
             final TargetDataLine targetline = (TargetDataLine) AudioSystem.getLine(info);
             targetline.open(format,4096);
             targetline.start();
-            final AudioInputStream stream = new AudioInputStream(targetline);//antes estaba line
+
+            final AudioInputStream stream = new AudioInputStream(targetline);
             JVMAudioInputStream audioStream = new JVMAudioInputStream(stream);
 
             startDispatcher(audioStream);
 
             Thread audioProcessor = new Thread(dispatcher);
             audioProcessor.start();
+
         } catch (LineUnavailableException e) {
             e.printStackTrace();}
         }
 
     private void setParameters() {
-        format = new AudioFormat(44100, 16, 1, true,true);
-        rateTransposer = new RateTransposer(pitchValue);
         gain = new GainProcessor(1.0);
-        try {
-            audioPlayer = new AudioPlayer(format);
-        } catch (LineUnavailableException e) {
-            e.printStackTrace();
-        }
+        format = new AudioFormat(44100, 16, 1, true,true);
         sampleRate = format.getSampleRate();
+        rateTransposer = new RateTransposer(pitchValue);
         wsola = new WaveformSimilarityBasedOverlapAdd(Parameters.musicDefaults(pitchValue, sampleRate));
     }
 
     private void startDispatcher(JVMAudioInputStream audioStream) {
-        // create a new dispatcher
         dispatcher = new AudioDispatcher(audioStream, wsola.getInputBufferSize(),wsola.getOverlap());
-
         wsola.setDispatcher(dispatcher);
         dispatcher.addAudioProcessor(wsola);
         dispatcher.addAudioProcessor(rateTransposer);
         dispatcher.addAudioProcessor(gain);
-        dispatcher.addAudioProcessor(audioPlayer);
         dispatcher.addAudioProcessor(new Oscilloscope(oscilloscopeEventHandler));
-        dispatcher.addAudioProcessor(new AudioProcessor() {
-
-            @Override
-            public void processingFinished() {
-                if(true){//era loop antes
-                    dispatcher =null;
-                    initiate();
-                }
-            }
-            @Override
-            public boolean process(AudioEvent audioEvent) {
-                return true;
-            }
-        });
+        dispatcher.addAudioProcessor(audioPlayer);
     }
 
     public void onChangeGainValue(double newGainValue) {
@@ -118,6 +100,7 @@ public class AudioPitchShifter {
         wsola.setParameters(WaveformSimilarityBasedOverlapAdd.Parameters.musicDefaults(pitchValue, sampleRate));
         rateTransposer.setFactor(pitchValue);
     }
+
     public double getPitchValue() {
         return pitchValue;
     }
@@ -125,5 +108,4 @@ public class AudioPitchShifter {
     public boolean isDispatcherNull() {
         return dispatcher == null;
     }
-
 }

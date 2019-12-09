@@ -10,9 +10,6 @@ import be.tarsos.dsp.AudioEvent;
 
 public class GraphPanel extends JPanel{
 
-    /**
-     *
-     */
     private static final long serialVersionUID = 4969781241442094359L;
 
     private float data[];
