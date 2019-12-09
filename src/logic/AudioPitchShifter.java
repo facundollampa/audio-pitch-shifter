@@ -28,15 +28,15 @@ public class AudioPitchShifter {
     private RateTransposer rateTransposer;
     private AudioFormat format;
 
-    private static double currentFactor;
+    private double pitchValue;
     private double gainValue;
     private double sampleRate;
-    private OscilloscopeEventHandler asss;
+    private OscilloscopeEventHandler oscilloscopeEventHandler;
 
-    public AudioPitchShifter(OscilloscopeEventHandler h) {
-        currentFactor = 1;
+    public AudioPitchShifter(OscilloscopeEventHandler handler) {
+        pitchValue = 1;
         gainValue = 1;
-        asss = h;
+        oscilloscopeEventHandler = handler;
     }
 
     public void initiate() {
@@ -67,7 +67,7 @@ public class AudioPitchShifter {
 
     private void setParameters() {
         format = new AudioFormat(44100, 16, 1, true,true);
-        rateTransposer = new RateTransposer(currentFactor);
+        rateTransposer = new RateTransposer(pitchValue);
         gain = new GainProcessor(1.0);
         try {
             audioPlayer = new AudioPlayer(format);
@@ -75,7 +75,7 @@ public class AudioPitchShifter {
             e.printStackTrace();
         }
         sampleRate = format.getSampleRate();
-        wsola = new WaveformSimilarityBasedOverlapAdd(Parameters.musicDefaults(currentFactor, sampleRate));
+        wsola = new WaveformSimilarityBasedOverlapAdd(Parameters.musicDefaults(pitchValue, sampleRate));
     }
 
     private void startDispatcher(JVMAudioInputStream audioStream) {
@@ -87,7 +87,7 @@ public class AudioPitchShifter {
         dispatcher.addAudioProcessor(rateTransposer);
         dispatcher.addAudioProcessor(gain);
         dispatcher.addAudioProcessor(audioPlayer);
-        dispatcher.addAudioProcessor(new Oscilloscope(asss));
+        dispatcher.addAudioProcessor(new Oscilloscope(oscilloscopeEventHandler));
         dispatcher.addAudioProcessor(new AudioProcessor() {
 
             @Override
@@ -104,7 +104,7 @@ public class AudioPitchShifter {
         });
     }
 
-    public void changeGain(double newGainValue) {
+    public void onChangeGainValue(double newGainValue) {
         gainValue = newGainValue;
         gain.setGain(gainValue);
     }
@@ -113,21 +113,17 @@ public class AudioPitchShifter {
         return gainValue;
     }
 
-    public void changeCurrentFactor(double newCurrentFactor) {
-        currentFactor = newCurrentFactor;
-        wsola.setParameters(WaveformSimilarityBasedOverlapAdd.Parameters.musicDefaults(currentFactor, sampleRate));
-        rateTransposer.setFactor(currentFactor);
+    public void onChangePitchValue(double newPitchValue) {
+        pitchValue = newPitchValue;
+        wsola.setParameters(WaveformSimilarityBasedOverlapAdd.Parameters.musicDefaults(pitchValue, sampleRate));
+        rateTransposer.setFactor(pitchValue);
     }
-    public double getCurrentFactor() {
-        return currentFactor;
+    public double getPitchValue() {
+        return pitchValue;
     }
 
     public boolean isDispatcherNull() {
         return dispatcher == null;
-    }
-    
-    public void setos(OscilloscopeEventHandler as) {
-    	asss = as;
     }
 
 }
